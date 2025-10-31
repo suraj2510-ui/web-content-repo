@@ -1,0 +1,45 @@
+---
+- name: Configure Nginx on web servers
+  hosts: web_servers
+  become: yes # This allows Ansible to run commands with sudo privileges
+  tasks:
+    - name: Update apt cache
+      apt:
+        update_cache: yes
+      when: ansible_os_family == "Debian" # Only for Debian-based systems like Ubuntu
+
+    - name: Install Nginx
+      apt:
+        name: nginx
+        state: present
+      when: ansible_os_family == "Debian"
+
+    - name: Start Nginx service
+      service:
+        name: nginx
+        state: started
+        enabled: yes # Ensures Nginx starts automatically on boot
+
+    - name: Verify Nginx is running (check process)
+      command: systemctl is-active nginx
+      register: nginx_status_check
+      changed_when: false # This command doesn't change system state
+
+    - name: Print Nginx status
+      debug:
+        msg: "Nginx status on {{ inventory_hostname }}: {{ nginx_status_check.stdout }}"
+
+    - name: Replace default Nginx index.html with custom message
+      copy:
+        content: "Welcome to Nginx on {{ inventory_hostname }}!"
+        dest: /var/www/html/index.nginx-debian.html # Common path for default Nginx page on Debian
+        owner: www-data
+        group: www-data
+        mode: '0644'
+      notify: Restart Nginx
+
+  handlers:
+    - name: Restart Nginx
+      service:
+        name: nginx
+        state: restarted
