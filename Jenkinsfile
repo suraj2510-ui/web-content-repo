@@ -1,9 +1,8 @@
-// Jenkinsfile for Web Content CD
+// Jenkinsfile for Web Content CD (Fixed Permissions + Clean Deployment)
 pipeline {
     agent any
 
     environment {
-        // Path where Nginx serves files on the target servers
         NGINX_HTML_PATH = "/var/www/html/"
     }
 
@@ -11,7 +10,6 @@ pipeline {
         stage('Checkout Code') {
             steps {
                 echo 'Checking out web content from GitHub...'
-                // Pulls code from your GitHub repo
                 git branch: 'main', url: 'https://github.com/suraj2510-ui/web-content-repo.git'
             }
         }
@@ -22,16 +20,19 @@ pipeline {
                 script {
                     sshPublisher(publishers: [
                         sshPublisherDesc(
-                            configName: 'AWS_APP_MACHINE', // Must match Jenkins SSH config name
+                            configName: 'AWS_APP_MACHINE',
                             transfers: [
                                 sshTransfer(
                                     sourceFiles: 'index-aws.html',
                                     removePrefix: '',
-                                    remoteDirectory: NGINX_HTML_PATH,
+                                    remoteDirectory: '/tmp/deploy', // ✅ Upload to writable temp directory
                                     execCommand: """
                                         echo "Deploying AWS site..."
-                                        sudo mv ${NGINX_HTML_PATH}index-aws.html ${NGINX_HTML_PATH}index.html
-                                        sudo chown www-data:www-data ${NGINX_HTML_PATH}index.html
+                                        sudo mkdir -p ${NGINX_HTML_PATH}
+                                        sudo rm -rf ${NGINX_HTML_PATH}*
+                                        sudo cp /tmp/deploy/index-aws.html ${NGINX_HTML_PATH}index.html
+                                        sudo chown -R www-data:www-data ${NGINX_HTML_PATH}
+                                        sudo chmod -R 755 ${NGINX_HTML_PATH}
                                         sudo systemctl restart nginx
                                         echo "✅ AWS deployment complete."
                                     """
@@ -50,16 +51,19 @@ pipeline {
                 script {
                     sshPublisher(publishers: [
                         sshPublisherDesc(
-                            configName: 'AZURE_VM', // Must match Jenkins SSH config name
+                            configName: 'AZURE_VM',
                             transfers: [
                                 sshTransfer(
                                     sourceFiles: 'index-azure.html',
                                     removePrefix: '',
-                                    remoteDirectory: NGINX_HTML_PATH,
+                                    remoteDirectory: '/tmp/deploy', // ✅ Upload to writable temp directory
                                     execCommand: """
                                         echo "Deploying Azure site..."
-                                        sudo mv ${NGINX_HTML_PATH}index-azure.html ${NGINX_HTML_PATH}index.html
-                                        sudo chown www-data:www-data ${NGINX_HTML_PATH}index.html
+                                        sudo mkdir -p ${NGINX_HTML_PATH}
+                                        sudo rm -rf ${NGINX_HTML_PATH}*
+                                        sudo cp /tmp/deploy/index-azure.html ${NGINX_HTML_PATH}index.html
+                                        sudo chown -R www-data:www-data ${NGINX_HTML_PATH}
+                                        sudo chmod -R 755 ${NGINX_HTML_PATH}
                                         sudo systemctl restart nginx
                                         echo "✅ Azure deployment complete."
                                     """
