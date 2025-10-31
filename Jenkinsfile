@@ -2,102 +2,92 @@ pipeline {
     agent any
 
     environment {
-        AWS_SSH_CONFIG = 'AWS_APP_MACHINE'
-        AZURE_SSH_CONFIG = 'AZURE_VM'
-        TEMP_DIR = '/tmp'
-        NGINX_HTML_PATH = '/var/www/html'
+        AWS_SSH_CONFIG = 'aws-app-server'      // Jenkins SSH config name for AWS EC2
+        AZURE_SSH_CONFIG = 'azure-web-server'  // Jenkins SSH config name for Azure VM
     }
 
     stages {
-
         stage('Checkout Code') {
             steps {
-                echo "Checking out web content from GitHub..."
                 git branch: 'main', url: 'https://github.com/suraj2510-ui/web-content-repo.git'
+            }
+        }
+
+        stage('Build') {
+            steps {
+                echo '✅ Build stage — static HTML, so nothing to compile.'
             }
         }
 
         stage('Deploy to AWS App Machine') {
             steps {
-                echo "🚀 Deploying to AWS App Machine..."
-                script {
-                    sshPublisher(publishers: [
-                        sshPublisherDesc(
-                            configName: "${AWS_SSH_CONFIG}",
-                            transfers: [
-                                sshTransfer(
-                                    sourceFiles: 'index-aws.html',
-                                    remoteDirectory: "${TEMP_DIR}",
-                                    execCommand: """
-                                        echo "Moving file to nginx directory..."
-                                        sudo mv ${TEMP_DIR}/index-aws.html ${NGINX_HTML_PATH}/index.nginx-debian.html
-                                        sudo chown www-data:www-data ${NGINX_HTML_PATH}/index.nginx-debian.html
-                                        sudo chmod 644 ${NGINX_HTML_PATH}/index.nginx-debian.html
-                                        sudo systemctl restart nginx
-                                        echo "✅ AWS Deployment completed!"
-                                    """
-                                )
-                            ],
-                            verbose: true
-                        )
-                    ])
-                }
+                echo '🚀 Deploying to AWS App Machine...'
+                sshPublisher(publishers: [
+                    sshPublisherDesc(
+                        configName: "${AWS_SSH_CONFIG}",
+                        transfers: [
+                            sshTransfer(
+                                sourceFiles: 'index-aws.html',
+                                remoteDirectory: '/tmp',
+                                execCommand: '''
+                                    echo "Moving file to nginx directory..."
+                                    sudo mv /tmp/index-aws.html /var/www/html/index.nginx-debian.html
+                                    sudo chown www-data:www-data /var/www/html/index.nginx-debian.html
+                                    sudo chmod 644 /var/www/html/index.nginx-debian.html
+                                    sudo systemctl restart nginx
+                                    echo "✅ AWS Deployment completed!"
+                                '''
+                            )
+                        ],
+                        verbose: true
+                    )
+                ])
             }
         }
 
         stage('Deploy to Azure VM') {
             steps {
-                echo "🚀 Deploying to Azure VM..."
-                script {
-                    sshPublisher(publishers: [
-                        sshPublisherDesc(
-                            configName: "${AZURE_SSH_CONFIG}",
-                            transfers: [
-                                sshTransfer(
-                                    sourceFiles: 'index-azure.html',
-                                    remoteDirectory: "${TEMP_DIR}",
-                                    execCommand: """
-                                        echo "Moving file to nginx directory..."
-                                        sudo mv ${TEMP_DIR}/index-azure.html ${NGINX_HTML_PATH}/index.nginx-debian.html
-                                        sudo chown www-data:www-data ${NGINX_HTML_PATH}/index.nginx-debian.html
-                                        sudo chmod 644 ${NGINX_HTML_PATH}/index.nginx-debian.html
-                                        sudo systemctl restart nginx
-                                        echo "✅ Azure Deployment completed!"
-                                    """
-                                )
-                            ],
-                            verbose: true
-                        )
-                    ])
-                }
+                echo '🚀 Deploying to Azure VM...'
+                sshPublisher(publishers: [
+                    sshPublisherDesc(
+                        configName: "${AZURE_SSH_CONFIG}",
+                        transfers: [
+                            sshTransfer(
+                                sourceFiles: 'index-azure.html',
+                                remoteDirectory: '/tmp',
+                                execCommand: '''
+                                    echo "Moving file to nginx directory..."
+                                    sudo mv /tmp/index-azure.html /var/www/html/index.nginx-debian.html
+                                    sudo chown www-data:www-data /var/www/html/index.nginx-debian.html
+                                    sudo chmod 644 /var/www/html/index.nginx-debian.html
+                                    sudo systemctl restart nginx
+                                    echo "✅ Azure Deployment completed!"
+                                '''
+                            )
+                        ],
+                        verbose: true
+                    )
+                ])
             }
         }
 
-        stage('Verify Deployments') {
+        stage('Verify Deployment') {
             steps {
-                echo "🔍 Verifying Nginx responses..."
+                echo '🔍 Verifying deployments...'
                 script {
-                    sh '''
-                        echo "Checking AWS response..."
-                        ssh -o StrictHostKeyChecking=no aws-app "curl -I http://localhost | head -n 1"
+                    def awsCheck = sh(script: "curl -I http://<AWS_PUBLIC_IP> | grep 'HTTP/' || true", returnStdout: true).trim()
+                    def azureCheck = sh(script: "curl -I http://<AZURE_PUBLIC_IP> | grep 'HTTP/' || true", returnStdout: true).trim()
 
-                        echo "Checking Azure response..."
-                        ssh -o StrictHostKeyChecking=no azure-vm "curl -I http://localhost | head -n 1"
-                    '''
+                    echo "AWS Response: ${awsCheck}"
+                    echo "Azure Response: ${azureCheck}"
+
+                    if (!awsCheck.contains('200') || !azureCheck.contains('200')) {
+                        error("❌ Deployment verification failed. Check Nginx or permissions.")
+                    } else {
+                        echo '🎉 Deployment successful on both AWS and Azure!'
+                    }
                 }
             }
-        }
-    }
-
-    post {
-        always {
-            echo "🧾 Pipeline finished."
-        }
-        success {
-            echo "🎉 Deployment successful on both AWS and Azure!"
-        }
-        failure {
-            echo "❌ Deployment failed. Check Jenkins logs for details."
         }
     }
 }
