@@ -35,10 +35,12 @@ pipeline {
                                         removePrefix: '',
                                         remoteDirectory: '/tmp/deploy',
                                         execCommand: '''
+                                            echo "Starting deployment on AWS..."
                                             sudo rm -rf /var/www/html/*
                                             sudo cp -r /tmp/deploy/* /var/www/html/
                                             sudo chown -R www-data:www-data /var/www/html
                                             sudo systemctl restart nginx
+                                            echo "Deployment completed on AWS!"
                                         '''
                                     )
                                 ],
@@ -71,10 +73,12 @@ pipeline {
                                         removePrefix: '',
                                         remoteDirectory: '/tmp/deploy',
                                         execCommand: '''
+                                            echo "Starting deployment on Azure..."
                                             sudo rm -rf /var/www/html/*
                                             sudo cp -r /tmp/deploy/* /var/www/html/
                                             sudo chown -R www-data:www-data /var/www/html
                                             sudo systemctl restart nginx
+                                            echo "Deployment completed on Azure!"
                                         '''
                                     )
                                 ],
