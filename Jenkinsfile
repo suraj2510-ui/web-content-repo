@@ -33,14 +33,15 @@ pipeline {
                                     sshTransfer(
                                         sourceFiles: '**/*',
                                         removePrefix: '',
-                                        remoteDirectory: '/tmp/deploy',
+                                        remoteDirectory: '/tmp/deploy',   // ✅ CHANGED HERE
                                         execCommand: '''
                                             echo "Starting deployment on AWS..."
+                                            sudo mkdir -p /var/www/html
                                             sudo rm -rf /var/www/html/*
                                             sudo cp -r /tmp/deploy/* /var/www/html/
                                             sudo chown -R www-data:www-data /var/www/html
                                             sudo systemctl restart nginx
-                                            echo "Deployment completed on AWS!"
+                                            echo "✅ Deployment completed on AWS!"
                                         '''
                                     )
                                 ],
@@ -71,14 +72,15 @@ pipeline {
                                     sshTransfer(
                                         sourceFiles: '**/*',
                                         removePrefix: '',
-                                        remoteDirectory: '/tmp/deploy',
+                                        remoteDirectory: '/tmp/deploy',   // ✅ CHANGED HERE
                                         execCommand: '''
                                             echo "Starting deployment on Azure..."
+                                            sudo mkdir -p /var/www/html
                                             sudo rm -rf /var/www/html/*
                                             sudo cp -r /tmp/deploy/* /var/www/html/
                                             sudo chown -R www-data:www-data /var/www/html
                                             sudo systemctl restart nginx
-                                            echo "Deployment completed on Azure!"
+                                            echo "✅ Deployment completed on Azure!"
                                         '''
                                     )
                                 ],
