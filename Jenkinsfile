@@ -1,96 +1,86 @@
 pipeline {
     agent any
 
-    environment {
-        AWS_HOST = '44.223.87.153'
-        AZURE_HOST = '172.172.76.52'
-    }
-
     stages {
-
-        stage('Checkout Code') {
+        stage('Checkout') {
             steps {
-                echo '📦 Checking out source code from GitHub...'
-                git branch: 'main', url: 'https://github.com/suraj2510-ui/web-content-repo.git'
+                echo "📥 Checking out source code..."
+                checkout scm
             }
         }
 
-        stage('Test SSH Connection - AWS') {
+        stage('Build') {
             steps {
-                echo '🔗 Testing SSH connectivity to AWS App Machine...'
-                sh 'ssh -o StrictHostKeyChecking=no aws-app hostname'
+                echo "⚙️ Building the project..."
+                // (Optional) Add build steps if needed
             }
         }
 
-        stage('Deploy to AWS App Machine') {
+        stage('Deploy to AWS') {
             steps {
-                echo '🚀 Deploying web content to AWS App Machine...'
-                script {
-                    sshPublisher(publishers: [
+                echo "🚀 Deploying to AWS..."
+                sshPublisher(
+                    publishers: [
                         sshPublisherDesc(
-                            configName: 'AWS_APP_MACHINE',
+                            configName: 'AWS_APP_MACHINE', // Jenkins SSH host config name
                             transfers: [
                                 sshTransfer(
-                                    sourceFiles: 'index-aws.html',
-                                    remoteDirectory: '/tmp/deploy',
+                                    sourceFiles: 'index-aws.html', // File to deploy
+                                    removePrefix: '',
+                                    remoteDirectory: '/tmp', // Upload temp directory
                                     execCommand: '''
                                         echo "Starting AWS deployment..."
                                         sudo mkdir -p /var/www/html
-                                        sudo mv /tmp/deploy/index-aws.html /var/www/html/index.nginx-debian.html
+                                        sudo mv /tmp/index-aws.html /var/www/html/index.nginx-debian.html
                                         sudo chown www-data:www-data /var/www/html/index.nginx-debian.html
                                         sudo chmod 644 /var/www/html/index.nginx-debian.html
                                         sudo systemctl restart nginx
                                         echo "✅ AWS deployment completed successfully!"
                                     '''
                                 )
-                            ],
-                            verbose: true
+                            ]
                         )
-                    ])
-                }
+                    ]
+                )
             }
         }
 
-        stage('Test SSH Connection - Azure') {
+        stage('Deploy to Azure') {
             steps {
-                echo '🔗 Testing SSH connectivity to Azure VM...'
-                sh 'ssh -o StrictHostKeyChecking=no azure-vm uptime'
-            }
-        }
-
-        stage('Deploy to Azure VM') {
-            steps {
-                echo '🚀 Deploying web content to Azure VM...'
-                script {
-                    sshPublisher(publishers: [
+                echo "🚀 Deploying to Azure..."
+                sshPublisher(
+                    publishers: [
                         sshPublisherDesc(
-                            configName: 'AZURE_VM',
+                            configName: 'AZURE_VM', // Jenkins SSH host config name
                             transfers: [
                                 sshTransfer(
-                                    sourceFiles: 'index-azure.html',
-                                    remoteDirectory: '/tmp/deploy',
+                                    sourceFiles: 'index-azure.html', // File to deploy
+                                    removePrefix: '',
+                                    remoteDirectory: '/tmp', // Upload temp directory
                                     execCommand: '''
                                         echo "Starting Azure deployment..."
                                         sudo mkdir -p /var/www/html
-                                        sudo mv /tmp/deploy/index-azure.html /var/www/html/index.nginx-debian.html
+                                        sudo mv /tmp/index-azure.html /var/www/html/index.nginx-debian.html
                                         sudo chown www-data:www-data /var/www/html/index.nginx-debian.html
                                         sudo chmod 644 /var/www/html/index.nginx-debian.html
                                         sudo systemctl restart nginx
                                         echo "✅ Azure deployment completed successfully!"
                                     '''
                                 )
-                            ],
-                            verbose: true
+                            ]
                         )
-                    ])
-                }
+                    ]
+                )
             }
         }
     }
 
     post {
-        always {
-            echo '🧾 Pipeline finished.'
+        success {
+            echo "🎉 Deployment completed successfully for AWS and Azure!"
+        }
+        failure {
+            echo "❌ Deployment failed — please check Jenkins logs for details."
         }
     }
 }
