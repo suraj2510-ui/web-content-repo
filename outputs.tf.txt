@@ -1,0 +1,26 @@
+# aws/outputs.tf
+
+output "app_machine_public_ip" {
+  description = "Public IP address of the App Machine EC2 instance"
+  value       = aws_instance.app_machine.public_ip
+}
+
+output "tools_machine_public_ip" {
+  description = "Public IP address of the Tools Machine EC2 instance"
+  value       = aws_instance.tools_machine.public_ip
+}
+
+output "ssh_key_path" {
+  description = "Path to the generated SSH private key for EC2 instances"
+  value       = "./ec2-key.pem"
+}
+
+output "app_machine_ssh_command" {
+  description = "SSH command to connect to the App Machine"
+  value       = "ssh -i ${abspath(local_file.ec2_private_key.filename)} ubuntu@${aws_instance.app_machine.public_ip}"
+}
+
+output "tools_machine_ssh_command" {
+  description = "SSH command to connect to the Tools Machine"
+  value       = "ssh -i ${abspath(local_file.ec2_private_key.filename)} ubuntu@${aws_instance.tools_machine.public_ip}"
+}

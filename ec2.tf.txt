@@ -1,0 +1,31 @@
+# aws/ec2.tf
+
+# App Machine EC2 Instance
+resource "aws_instance" "app_machine" {
+  ami           = var.ami_id
+  instance_type = var.instance_type
+  subnet_id     = aws_subnet.public[0].id # Deploy in the first public subnet
+  vpc_security_group_ids = [aws_security_group.ec2_sg.id]
+  key_name      = aws_key_pair.ec2_key.key_name
+  associate_public_ip_address = true # Ensure it gets a public IP
+
+  tags = {
+    Name = "${var.project_name}-AppMachine"
+    Role = "App"
+  }
+}
+
+# Tools Machine EC2 Instance
+resource "aws_instance" "tools_machine" {
+  ami           = var.ami_id
+  instance_type = var.instance_type
+  subnet_id     = aws_subnet.public[1].id # Deploy in the second public subnet
+  vpc_security_group_ids = [aws_security_group.ec2_sg.id]
+  key_name      = aws_key_pair.ec2_key.key_name
+  associate_public_ip_address = true # Ensure it gets a public IP
+
+  tags = {
+    Name = "${var.project_name}-ToolsMachine"
+    Role = "Tools"
+  }
+}
