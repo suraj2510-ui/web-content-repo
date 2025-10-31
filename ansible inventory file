@@ -1,0 +1,6 @@
+[web_servers]
+aws_app_machine ansible_host=44.223.87.153  ansible_user=ubuntu ansible_private_key_file=/home/ubuntu/ec2-key.pem
+azure_vm ansible_host=172.172.76.52 ansible_user=azureuser ansible_private_key_file=/home/ubuntu/my-azure-key.pem
+
+[all:vars]
+ansible_python_interpreter=/usr/bin/python3
