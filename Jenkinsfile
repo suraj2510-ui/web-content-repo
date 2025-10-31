@@ -2,10 +2,10 @@ pipeline {
     agent any
 
     environment {
-        AWS_SSH_CONFIG = 'AWS_APP_MACHINE'   // SSH config name in Jenkins
-        AZURE_SSH_CONFIG = 'AZURE_VM'        // SSH config name in Jenkins
-        TEMP_DIR = '/tmp'                    // Safe upload location
-        NGINX_HTML_PATH = '/var/www/html'    // Nginx web root
+        AWS_SSH_CONFIG = 'AWS_APP_MACHINE'
+        AZURE_SSH_CONFIG = 'AZURE_VM'
+        TEMP_DIR = '/tmp'
+        NGINX_HTML_PATH = '/var/www/html'
     }
 
     stages {
@@ -27,10 +27,9 @@ pipeline {
                             transfers: [
                                 sshTransfer(
                                     sourceFiles: 'index-aws.html',
-                                    removePrefix: '',
                                     remoteDirectory: "${TEMP_DIR}",
                                     execCommand: """
-                                        echo "Starting AWS deployment..."
+                                        echo "Moving file to nginx directory..."
                                         sudo mv ${TEMP_DIR}/index-aws.html ${NGINX_HTML_PATH}/index.nginx-debian.html
                                         sudo chown www-data:www-data ${NGINX_HTML_PATH}/index.nginx-debian.html
                                         sudo chmod 644 ${NGINX_HTML_PATH}/index.nginx-debian.html
@@ -56,10 +55,9 @@ pipeline {
                             transfers: [
                                 sshTransfer(
                                     sourceFiles: 'index-azure.html',
-                                    removePrefix: '',
                                     remoteDirectory: "${TEMP_DIR}",
                                     execCommand: """
-                                        echo "Starting Azure deployment..."
+                                        echo "Moving file to nginx directory..."
                                         sudo mv ${TEMP_DIR}/index-azure.html ${NGINX_HTML_PATH}/index.nginx-debian.html
                                         sudo chown www-data:www-data ${NGINX_HTML_PATH}/index.nginx-debian.html
                                         sudo chmod 644 ${NGINX_HTML_PATH}/index.nginx-debian.html
@@ -77,7 +75,7 @@ pipeline {
 
         stage('Verify Deployments') {
             steps {
-                echo "🔍 Verifying Nginx responses from both servers..."
+                echo "🔍 Verifying Nginx responses..."
                 script {
                     sh '''
                         echo "Checking AWS response..."
