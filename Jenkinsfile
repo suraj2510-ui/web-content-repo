@@ -1,40 +1,41 @@
-// Jenkinsfile for Web Content CD (Fixed Permissions + Clean Deployment)
 pipeline {
     agent any
 
     environment {
-        NGINX_HTML_PATH = "/var/www/html/"
+        AWS_SSH_CONFIG = 'AWS_APP_MACHINE'   // SSH config name in Jenkins
+        AZURE_SSH_CONFIG = 'AZURE_VM'        // SSH config name in Jenkins
+        TEMP_DIR = '/tmp'                    // Safe upload location
+        NGINX_HTML_PATH = '/var/www/html'    // Nginx web root
     }
 
     stages {
+
         stage('Checkout Code') {
             steps {
-                echo 'Checking out web content from GitHub...'
+                echo "Checking out web content from GitHub..."
                 git branch: 'main', url: 'https://github.com/suraj2510-ui/web-content-repo.git'
             }
         }
 
         stage('Deploy to AWS App Machine') {
             steps {
-                echo 'Deploying to AWS App Machine...'
+                echo "🚀 Deploying to AWS App Machine..."
                 script {
                     sshPublisher(publishers: [
                         sshPublisherDesc(
-                            configName: 'AWS_APP_MACHINE',
+                            configName: "${AWS_SSH_CONFIG}",
                             transfers: [
                                 sshTransfer(
                                     sourceFiles: 'index-aws.html',
                                     removePrefix: '',
-                                    remoteDirectory: '/tmp/deploy', // ✅ Upload to writable temp directory
+                                    remoteDirectory: "${TEMP_DIR}",
                                     execCommand: """
-                                        echo "Deploying AWS site..."
-                                        sudo mkdir -p ${NGINX_HTML_PATH}
-                                        sudo rm -rf ${NGINX_HTML_PATH}*
-                                        sudo cp /tmp/deploy/index-aws.html ${NGINX_HTML_PATH}index.html
-                                        sudo chown -R www-data:www-data ${NGINX_HTML_PATH}
-                                        sudo chmod -R 755 ${NGINX_HTML_PATH}
+                                        echo "Starting AWS deployment..."
+                                        sudo mv ${TEMP_DIR}/index-aws.html ${NGINX_HTML_PATH}/index.nginx-debian.html
+                                        sudo chown www-data:www-data ${NGINX_HTML_PATH}/index.nginx-debian.html
+                                        sudo chmod 644 ${NGINX_HTML_PATH}/index.nginx-debian.html
                                         sudo systemctl restart nginx
-                                        echo "✅ AWS deployment complete."
+                                        echo "✅ AWS Deployment completed!"
                                     """
                                 )
                             ],
@@ -47,25 +48,23 @@ pipeline {
 
         stage('Deploy to Azure VM') {
             steps {
-                echo 'Deploying to Azure VM...'
+                echo "🚀 Deploying to Azure VM..."
                 script {
                     sshPublisher(publishers: [
                         sshPublisherDesc(
-                            configName: 'AZURE_VM',
+                            configName: "${AZURE_SSH_CONFIG}",
                             transfers: [
                                 sshTransfer(
                                     sourceFiles: 'index-azure.html',
                                     removePrefix: '',
-                                    remoteDirectory: '/tmp/deploy', // ✅ Upload to writable temp directory
+                                    remoteDirectory: "${TEMP_DIR}",
                                     execCommand: """
-                                        echo "Deploying Azure site..."
-                                        sudo mkdir -p ${NGINX_HTML_PATH}
-                                        sudo rm -rf ${NGINX_HTML_PATH}*
-                                        sudo cp /tmp/deploy/index-azure.html ${NGINX_HTML_PATH}index.html
-                                        sudo chown -R www-data:www-data ${NGINX_HTML_PATH}
-                                        sudo chmod -R 755 ${NGINX_HTML_PATH}
+                                        echo "Starting Azure deployment..."
+                                        sudo mv ${TEMP_DIR}/index-azure.html ${NGINX_HTML_PATH}/index.nginx-debian.html
+                                        sudo chown www-data:www-data ${NGINX_HTML_PATH}/index.nginx-debian.html
+                                        sudo chmod 644 ${NGINX_HTML_PATH}/index.nginx-debian.html
                                         sudo systemctl restart nginx
-                                        echo "✅ Azure deployment complete."
+                                        echo "✅ Azure Deployment completed!"
                                     """
                                 )
                             ],
@@ -78,7 +77,7 @@ pipeline {
 
         stage('Verify Deployments') {
             steps {
-                echo 'Verifying Nginx content on both servers...'
+                echo "🔍 Verifying Nginx responses from both servers..."
                 script {
                     sh '''
                         echo "Checking AWS response..."
@@ -94,13 +93,13 @@ pipeline {
 
     post {
         always {
-            echo "Pipeline finished."
+            echo "🧾 Pipeline finished."
         }
         success {
-            echo '✅ Deployment successful on both environments!'
+            echo "🎉 Deployment successful on both AWS and Azure!"
         }
         failure {
-            echo '❌ Deployment failed, check Jenkins logs for details.'
+            echo "❌ Deployment failed. Check Jenkins logs for details."
         }
     }
 }
