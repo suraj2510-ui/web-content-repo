@@ -3,7 +3,7 @@ pipeline {
     agent any
 
     environment {
-        # Nginx HTML file path on target servers
+        // Nginx HTML file path on target servers
         NGINX_HTML_PATH = "/var/www/html/"
     }
 
@@ -34,7 +34,7 @@ pipeline {
                                 sshTransfer(
                                     sourceFiles: 'index-aws.html',
                                     removePrefix: '',
-                                    remoteDirectory: '/home/ubuntu',   // Upload to a writable directory
+                                    remoteDirectory: '/home/ubuntu',   // Upload to writable directory
                                     execCommand: """
                                         sudo mv /home/ubuntu/index-aws.html ${NGINX_HTML_PATH}index.nginx-debian.html
                                         sudo systemctl restart nginx
@@ -70,7 +70,7 @@ pipeline {
                                 sshTransfer(
                                     sourceFiles: 'index-azure.html',
                                     removePrefix: '',
-                                    remoteDirectory: '/home/azureuser',   // Upload to home directory
+                                    remoteDirectory: '/home/azureuser',   // Upload to writable directory
                                     execCommand: """
                                         sudo mv /home/azureuser/index-azure.html ${NGINX_HTML_PATH}index.nginx-debian.html
                                         sudo systemctl restart nginx
